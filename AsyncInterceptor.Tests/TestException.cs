@@ -2,7 +2,7 @@
 
 namespace AsyncInterceptor.Tests
 {
-    class TestException : Exception
+    internal class TestException : Exception
     {
     }
 }

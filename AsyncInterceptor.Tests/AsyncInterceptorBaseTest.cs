@@ -13,14 +13,6 @@ namespace AsyncInterceptor.Tests
     [TestFixture]
     public class AsyncInterceptorBaseTest
     {
-        private static readonly object NoResult = new object();
-
-        private IAsyncInterceptorBaseInterface _sutAsserter;
-        private TestAsyncInterceptor _sut;
-        private TestImplementation _toBeIntercepted;
-        private IContainer _container;
-        private ITestInterface _intercepted;
-
         [SetUp]
         public void SetUp()
         {
@@ -43,6 +35,14 @@ namespace AsyncInterceptor.Tests
         {
             _container?.Dispose();
         }
+
+        private static readonly object NoResult = new object();
+
+        private IAsyncInterceptorBaseInterface _sutAsserter;
+        private TestAsyncInterceptor _sut;
+        private TestImplementation _toBeIntercepted;
+        private IContainer _container;
+        private ITestInterface _intercepted;
 
         private static IEnumerable<TestCaseData> TestCases()
         {

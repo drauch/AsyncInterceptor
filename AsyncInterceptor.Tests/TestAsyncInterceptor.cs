@@ -5,8 +5,8 @@ using FakeItEasy;
 namespace AsyncInterceptor.Tests
 {
     /// <summary>
-    ///   Test implementation allowing us to test the <see cref="AsyncInterceptorBase"/> abstract base class. Offers
-    ///   public virtual counterparts to the protected overridable methods, so they can be mocked properly.
+    ///     Test implementation allowing us to test the <see cref="AsyncInterceptorBase" /> abstract base class. Offers
+    ///     public virtual counterparts to the protected overridable methods, so they can be mocked properly.
     /// </summary>
     // ReSharper disable once ClassWithVirtualMembersNeverInherited.Global
     public class TestAsyncInterceptor : AsyncInterceptorBase

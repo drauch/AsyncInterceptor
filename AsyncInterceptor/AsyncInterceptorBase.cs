@@ -11,17 +11,18 @@ using JetBrains.Annotations;
 namespace AsyncInterceptor
 {
     /// <summary>
-    ///   Async-aware implementation of an <see cref="IInterceptor"/>. Instead of a universal <see cref="Intercept"/>,
-    ///   this class allows you to override four callbacks to perform your interception code (namely,
-    ///   <see cref="BeforeProceed"/>, <see cref="AfterProceed"/>, <see cref="OnException"/> and
-    ///   <see cref="Finally"/>). In order to perform properly this class needs to add its own continuation to the
-    ///   returned awaitable, therefore you cannot adjust the <see cref="IInvocation"/>'s
-    ///   <see cref="IInvocation.ReturnValue"/> property - instead you can adjust the return value by overriding
-    ///   <see cref="AfterProceed"/>.
+    ///     Async-aware implementation of an <see cref="IInterceptor" />. Instead of a universal <see cref="Intercept" />,
+    ///     this class allows you to override four callbacks to perform your interception code (namely,
+    ///     <see cref="BeforeProceed" />, <see cref="AfterProceed" />, <see cref="OnException" /> and
+    ///     <see cref="Finally" />). In order to perform properly this class needs to add its own continuation to the
+    ///     returned awaitable, therefore you cannot adjust the <see cref="IInvocation" />'s
+    ///     <see cref="IInvocation.ReturnValue" /> property - instead you can adjust the return value by overriding
+    ///     <see cref="AfterProceed" />.
     /// </summary>
     public abstract class AsyncInterceptorBase : IInterceptor
     {
-        private readonly ConcurrentDictionary<Type, Delegate> _delegateCache = new ConcurrentDictionary<Type, Delegate>();
+        private readonly ConcurrentDictionary<Type, Delegate> _delegateCache =
+            new ConcurrentDictionary<Type, Delegate>();
 
         public void Intercept(IInvocation invocation)
         {
@@ -45,20 +46,20 @@ namespace AsyncInterceptor
         }
 
         /// <summary>
-        ///   Override this method in order to execute code before <see cref="IInvocation.Proceed"/> is called.
+        ///     Override this method in order to execute code before <see cref="IInvocation.Proceed" /> is called.
         /// </summary>
         /// <param name="invocation">The intercepted invocation.</param>
-        /// <returns>See <see cref="BeforeProceedResult"/>.</returns>
+        /// <returns>See <see cref="BeforeProceedResult" />.</returns>
         protected virtual BeforeProceedResult BeforeProceed(IInvocation invocation)
         {
             return BeforeProceedResult.Proceed;
         }
 
         /// <summary>
-        ///   Override this method in order to execute code after <see cref="IInvocation.Proceed"/> successfully completed.
+        ///     Override this method in order to execute code after <see cref="IInvocation.Proceed" /> successfully completed.
         /// </summary>
         /// <param name="invocation">The intercepted invocation.</param>
-        /// <param name="state">The state returned by <see cref="BeforeProceed"/>.</param>
+        /// <param name="state">The state returned by <see cref="BeforeProceed" />.</param>
         /// <param name="originalReturnValue">The return value of the intercepted method, null for void methods.</param>
         /// <returns>The return value you want the method to return to the caller. Ignored for void methods.</returns>
         protected virtual object? AfterProceed(IInvocation invocation, object? state, object? originalReturnValue)
@@ -67,27 +68,28 @@ namespace AsyncInterceptor
         }
 
         /// <summary>
-        ///   Override this method in order to execute code when <see cref="IInvocation.Proceed"/> faulted or has been canceled.
+        ///     Override this method in order to execute code when <see cref="IInvocation.Proceed" /> faulted or has been canceled.
         /// </summary>
         /// <param name="invocation">The intercepted invocation.</param>
         /// <param name="exception">The exception.</param>
-        /// <param name="state">The state returned by <see cref="BeforeProceed"/>.</param>
+        /// <param name="state">The state returned by <see cref="BeforeProceed" />.</param>
         protected virtual void OnException(IInvocation invocation, Exception exception, object? state)
         {
         }
 
         /// <summary>
-        ///   Override this method in order to execute code when <see cref="IInvocation.Proceed"/> completed (regardless of the completed task's status).
+        ///     Override this method in order to execute code when <see cref="IInvocation.Proceed" /> completed (regardless of the
+        ///     completed task's status).
         /// </summary>
         /// <param name="invocation">The intercepted invocation.</param>
-        /// <param name="state">The state returned by <see cref="BeforeProceed"/>.</param>
+        /// <param name="state">The state returned by <see cref="BeforeProceed" />.</param>
         protected virtual void Finally(IInvocation invocation, object? state)
         {
         }
 
         /// <summary>
-        ///   Returns whether the <paramref name="type"/> is a supported awaitable type of
-        ///    <see cref="AsyncInterceptorBase"/>. Unsupported awaitable types are simply continued synchronously.
+        ///     Returns whether the <paramref name="type" /> is a supported awaitable type of
+        ///     <see cref="AsyncInterceptorBase" />. Unsupported awaitable types are simply continued synchronously.
         /// </summary>
         private bool IsSupportedAwaitable(Type type)
         {
@@ -98,48 +100,42 @@ namespace AsyncInterceptor
         }
 
         /// <summary>
-        ///   Returns the default value of the given <paramref name="returnType"/>. Special handling for
-        ///   <see cref="Task"/> and <see cref="ValueTask"/>: a completed (value-) task is returned, with the
-        ///   default value as its result.
+        ///     Returns the default value of the given <paramref name="returnType" />. Special handling for
+        ///     <see cref="Task" /> and <see cref="ValueTask" />: a completed (value-) task is returned, with the
+        ///     default value as its result.
         /// </summary>
         private object? GetDefaultValue(Type returnType)
         {
             if (returnType == typeof(Task))
-            {
                 return Task.CompletedTask;
-            }
 
-            else if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
-            {
+            if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
                 return typeof(AsyncInterceptorBase).GetMethod(nameof(GetDefaultTask),
                         BindingFlags.Instance | BindingFlags.NonPublic)!
                     .MakeGenericMethod(returnType.GetGenericArguments().Single()).Invoke(this, new object[0]);
-            }
 
-            else if (returnType == typeof(ValueTask))
-            {
+            if (returnType == typeof(ValueTask))
                 return new ValueTask();
-            }
 
-            else if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(ValueTask<>))
-            {
+            if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(ValueTask<>))
                 return typeof(AsyncInterceptorBase).GetMethod(nameof(GetDefaultValueTask),
                         BindingFlags.Instance | BindingFlags.NonPublic)!
                     .MakeGenericMethod(returnType.GetGenericArguments().Single()).Invoke(this, new object[0]);
-            }
 
-            else if (returnType.IsValueType)
-            {
+            if (returnType.IsValueType)
                 return Activator.CreateInstance(returnType);
-            }
-            else
-            {
-                return null;
-            }
+            return null;
         }
 
-        private Task<T> GetDefaultTask<T>() => Task.FromResult(default(T));
-        private ValueTask<T> GetDefaultValueTask<T>() => new ValueTask<T>(default(T));
+        private Task<T> GetDefaultTask<T>()
+        {
+            return Task.FromResult(default(T));
+        }
+
+        private ValueTask<T> GetDefaultValueTask<T>()
+        {
+            return new ValueTask<T>(default(T));
+        }
 
         private void ProceedSynchronously(IInvocation invocation, Type returnType, object? state)
         {
@@ -164,19 +160,12 @@ namespace AsyncInterceptor
 
         private object ProceedAsynchronously(IInvocation invocation, Type returnType, object? state)
         {
-            if (returnType == typeof(Task))
-            {
-                return ProceedAsynchronouslyForTask(invocation, state);
-            }
-            else if (returnType == typeof(ValueTask))
-            {
-                return ProceedAsynchronouslyForValueTask(invocation, state);
-            }
-            else
-            {
-                var proceedAsynchronouslyDelegate = GetProceedAsynchronouslyForReturnTypeDelegate(returnType);
-                return proceedAsynchronouslyDelegate.DynamicInvoke(invocation, state);
-            }
+            if (returnType == typeof(Task)) return ProceedAsynchronouslyForTask(invocation, state);
+
+            if (returnType == typeof(ValueTask)) return ProceedAsynchronouslyForValueTask(invocation, state);
+
+            var proceedAsynchronouslyDelegate = GetProceedAsynchronouslyForReturnTypeDelegate(returnType);
+            return proceedAsynchronouslyDelegate.DynamicInvoke(invocation, state);
         }
 
         private Delegate GetProceedAsynchronouslyForReturnTypeDelegate(Type returnType)
@@ -184,7 +173,6 @@ namespace AsyncInterceptor
             Delegate? proceedAsynchronouslyDelegate = null;
 
             if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
-            {
                 proceedAsynchronouslyDelegate = _delegateCache.GetOrAdd(returnType, _ =>
                 {
                     var type = Expression.GetFuncType(typeof(IInvocation), typeof(object), returnType);
@@ -194,9 +182,7 @@ namespace AsyncInterceptor
                         .MakeGenericMethod(returnType.GetGenericArguments().Single());
                     return Delegate.CreateDelegate(type, this, method);
                 });
-            }
             else if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(ValueTask<>))
-            {
                 proceedAsynchronouslyDelegate = _delegateCache.GetOrAdd(returnType, _ =>
                 {
                     var type = Expression.GetFuncType(typeof(IInvocation), typeof(object), returnType);
@@ -206,9 +192,9 @@ namespace AsyncInterceptor
                         .MakeGenericMethod(returnType.GetGenericArguments().Single());
                     return Delegate.CreateDelegate(type, this, method);
                 });
-            }
 
-            Trace.Assert(proceedAsynchronouslyDelegate != null, "IsSupportedAwaitable returned true although we don't support it");
+            Trace.Assert(proceedAsynchronouslyDelegate != null,
+                "IsSupportedAwaitable returned true although we don't support it");
             return proceedAsynchronouslyDelegate!;
         }
 
@@ -217,7 +203,7 @@ namespace AsyncInterceptor
             try
             {
                 invocation.Proceed();
-                var task = (Task)invocation.ReturnValue;
+                var task = (Task) invocation.ReturnValue;
                 await task;
                 AfterProceed(invocation, state, null);
             }
@@ -238,7 +224,7 @@ namespace AsyncInterceptor
             try
             {
                 invocation.Proceed();
-                var task = (Task<T>)invocation.ReturnValue;
+                var task = (Task<T>) invocation.ReturnValue;
                 var originalResult = await task;
                 return (T) AfterProceed(invocation, state, originalResult) ?? originalResult;
             }
@@ -258,7 +244,7 @@ namespace AsyncInterceptor
             try
             {
                 invocation.Proceed();
-                var valueTask = (ValueTask)invocation.ReturnValue;
+                var valueTask = (ValueTask) invocation.ReturnValue;
                 await valueTask;
                 AfterProceed(invocation, state, null);
             }
@@ -279,7 +265,7 @@ namespace AsyncInterceptor
             try
             {
                 invocation.Proceed();
-                var valueTask = (ValueTask<T>)invocation.ReturnValue;
+                var valueTask = (ValueTask<T>) invocation.ReturnValue;
                 var originalResult = await valueTask;
                 return (T) AfterProceed(invocation, state, originalResult) ?? originalResult;
             }
